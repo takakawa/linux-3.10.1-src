@@ -932,7 +932,7 @@ static int inet_compat_ioctl(struct socket *sock, unsigned int cmd, unsigned lon
 	return err;
 }
 #endif
-
+// 这里讲解了这几个层的关系和socket的关键函数调用过程https://blog.csdn.net/luckywang1103/article/details/51418723
 const struct proto_ops inet_stream_ops = {
 	.family		   = PF_INET,
 	.owner		   = THIS_MODULE,

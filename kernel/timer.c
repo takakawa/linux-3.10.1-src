@@ -376,6 +376,7 @@ __internal_add_timer(struct tvec_base *base, struct timer_list *timer)
 	/*
 	 * Timers are FIFO:
 	 */
+	/* 为什么FIFO?以下是尾插法，vec表示的是尾部，后边处理也是从尾部向前，这样不就是LIFO? */
 	list_add_tail(&timer->entry, vec);
 }
 
