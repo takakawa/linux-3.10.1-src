@@ -1744,7 +1744,7 @@ static struct sock *tcp_v4_hnd_req(struct sock *sk, struct sk_buff *skb)
 	struct request_sock **prev;
 	/* Find possible connection requests. */
 	struct request_sock *req = inet_csk_search_req(sk, &prev, th->source,
-						       iph->saddr, iph->daddr);
+						       iph->saddr, iph->daddr); //查找半连接队列，返回req，这个队列中的是较小的request_sock
 	if (req)
 		return tcp_check_req(sk, skb, req, prev, false);
 
