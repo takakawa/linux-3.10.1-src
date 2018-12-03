@@ -1863,7 +1863,7 @@ static void __release_sock(struct sock *sk)
 			prefetch(next);
 			WARN_ON_ONCE(skb_dst_is_noref(skb));
 			skb->next = NULL;
-			sk_backlog_rcv(sk, skb);
+			sk_backlog_rcv(sk, skb);  //tcp_v4_do_rcv
 
 			/*
 			 * We are in process context here with softirqs

@@ -4017,7 +4017,7 @@ static void tcp_sack_remove(struct tcp_sock *tp)
 /* This one checks to see if we can put data from the
  * out_of_order queue into the receive_queue.
  */
-static void tcp_ofo_queue(struct sock *sk)
+static void tcp_ofo_queue(struct sock *sk) //每次插入receive队列时都要检查此队列
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	__u32 dsack_high = tp->rcv_nxt;
@@ -5217,7 +5217,7 @@ int tcp_rcv_established(struct sock *sk, struct sk_buff *skb,
 
 				/* Bulk data transfer: receiver */
 				eaten = tcp_queue_rcv(sk, skb, tcp_header_len,
-						      &fragstolen);
+						      &fragstolen);   //放入sk_receive_queue
 			}
 
 			tcp_event_data_recv(sk, skb);

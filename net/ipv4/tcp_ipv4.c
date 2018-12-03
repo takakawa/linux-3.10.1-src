@@ -1811,7 +1811,7 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 		goto discard;
 #endif
 
-	if (sk->sk_state == TCP_ESTABLISHED) { /* Fast path */
+	if (sk->sk_state == TCP_ESTABLISHED) { /* Fast path */  
 		struct dst_entry *dst = sk->sk_rx_dst;
 
 		sock_rps_save_rxhash(sk, skb);
@@ -1822,7 +1822,7 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 				sk->sk_rx_dst = NULL;
 			}
 		}
-		if (tcp_rcv_established(sk, skb, tcp_hdr(skb), skb->len)) {
+		if (tcp_rcv_established(sk, skb, tcp_hdr(skb), skb->len)) {//建立连接时主要处理函数
 			rsk = sk;
 			goto reset;
 		}
@@ -1920,23 +1920,23 @@ bool tcp_prequeue(struct sock *sk, struct sk_buff *skb)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 
-	if (sysctl_tcp_low_latency || !tp->ucopy.task)
+	if (sysctl_tcp_low_latency || !tp->ucopy.task) ////内核要求低延迟或不是处于进程上下文，则不能使用prequeue
 		return false;
-
+    //现在是处于进程上下文
 	if (skb->len <= tcp_hdrlen(skb) &&
 	    skb_queue_len(&tp->ucopy.prequeue) == 0)
 		return false;
 
 	skb_dst_force(skb);
-	__skb_queue_tail(&tp->ucopy.prequeue, skb);
+	__skb_queue_tail(&tp->ucopy.prequeue, skb);  //skb先放入preuque中，暂时跳过TCP协议处理
 	tp->ucopy.memory += skb->truesize;
-	if (tp->ucopy.memory > sk->sk_rcvbuf) {
+	if (tp->ucopy.memory > sk->sk_rcvbuf) {      //缓存被占满
 		struct sk_buff *skb1;
 
 		BUG_ON(sock_owned_by_user(sk));
 
 		while ((skb1 = __skb_dequeue(&tp->ucopy.prequeue)) != NULL) {
-			sk_backlog_rcv(sk, skb1);
+			sk_backlog_rcv(sk, skb1);       //调用tcp_v4_do_rcv函数进行处理
 			NET_INC_STATS_BH(sock_net(sk),
 					 LINUX_MIB_TCPPREQUEUEDROPPED);
 		}
@@ -2033,8 +2033,8 @@ process:
 		else
 #endif
 		{
-			if (!tcp_prequeue(sk, skb))
-				ret = tcp_v4_do_rcv(sk, skb);
+			if (!tcp_prequeue(sk, skb))//先尝试加入prequeue，满了走下边
+				ret = tcp_v4_do_rcv(sk, skb); //否则加入sk_receive_queue
 		}
 	} else if (unlikely(sk_add_backlog(sk, skb,
 					   sk->sk_rcvbuf + sk->sk_sndbuf))) {
@@ -2862,7 +2862,7 @@ struct proto tcp_prot = {
 	.shutdown		= tcp_shutdown,
 	.setsockopt		= tcp_setsockopt,
 	.getsockopt		= tcp_getsockopt,
-	.recvmsg		= tcp_recvmsg,
+	.recvmsg		= tcp_recvmsg,         //由用户系统调用调，从网卡收到函数的tcp_v4_rcv
 	.sendmsg		= tcp_sendmsg,
 	.sendpage		= tcp_sendpage,
 	.backlog_rcv		= tcp_v4_do_rcv,

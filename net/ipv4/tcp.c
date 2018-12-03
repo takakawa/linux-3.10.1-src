@@ -1217,7 +1217,7 @@ wait_for_memory:
 out:
 	if (copied)
 		tcp_push(sk, flags, mss_now, tp->nonagle);
-	release_sock(sk);
+	release_sock(sk);            //处理prequeue
 	return copied + copied_syn;
 
 do_fault:
