@@ -182,8 +182,8 @@ struct sock *__inet_lookup_listener(struct net *net,
 {
 	struct sock *sk, *result;
 	struct hlist_nulls_node *node;
-	unsigned int hash = inet_lhashfn(net, hnum);
-	struct inet_listen_hashbucket *ilb = &hashinfo->listening_hash[hash];
+	unsigned int hash = inet_lhashfn(net, hnum); // dnum即dstport，即针对同一个目标端口有多个listening socket
+	struct inet_listen_hashbucket *ilb = &hashinfo->listening_hash[hash]; // 取这个桶上的所有sockets
 	int score, hiscore, matches = 0, reuseport = 0;
 	u32 phash = 0;
 
@@ -198,13 +198,13 @@ begin:
 			hiscore = score;
 			reuseport = sk->sk_reuseport;
 			if (reuseport) {
-				phash = inet_ehashfn(net, daddr, hnum,
+				phash = inet_ehashfn(net, daddr, hnum,  // hnum即port,此处为四元组
 						     saddr, sport);
 				matches = 1;
 			}
 		} else if (score == hiscore && reuseport) {
 			matches++;
-			if (((u64)phash * matches) >> 32 == 0)
+			if (((u64)phash * matches) >> 32 == 0)  // matches随着匹配会越来越大，phash*matches是怎么变化？这个如何保持均衡？是一种随机算法？
 				result = sk;
 			phash = next_pseudo_random32(phash);
 		}

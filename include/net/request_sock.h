@@ -49,17 +49,17 @@ extern int inet_rtx_syn_ack(struct sock *parent, struct request_sock *req);
  */
 struct request_sock {
 	struct request_sock		*dl_next;
-	u16				mss;
+	u16				mss;  /* 客户端通告的MSS */
 	u8				num_retrans; /* number of retransmits */
 	u8				cookie_ts:1; /* syncookie: encode tcpopts in timestamp */
 	u8				num_timeout:7; /* number of timeouts */
 	/* The following two fields can be easily recomputed I think -AK */
-	u32				window_clamp; /* window clamp at creation time */
-	u32				rcv_wnd;	  /* rcv_wnd offered first time */
-	u32				ts_recent;
-	unsigned long			expires;
-	const struct request_sock_ops	*rsk_ops;
-	struct sock			*sk;
+	u32				window_clamp; /* window clamp at creation time */ /* 本端的最大通告窗口 */
+	u32				rcv_wnd;	  /* rcv_wnd offered first time */  /* 本端的接收窗口大小 */
+	u32				ts_recent;  /* 下个发送段的时间戳回显值 */
+	unsigned long			expires;  /* SYNACK的超时时间 */
+	const struct request_sock_ops	*rsk_ops; /* 指向tcp_request_sock_ops，操作函数 */
+	struct sock			*sk;  /* 连接建立之前无效 */
 	u32				secid;
 	u32				peer_secid;
 };
@@ -92,15 +92,15 @@ extern int sysctl_max_syn_backlog;
  * @max_qlen_log - log_2 of maximal queued SYNs/REQUESTs
  */
 struct listen_sock {
-	u8			max_qlen_log;
-	u8			synflood_warned;
+	u8			max_qlen_log; /* 半连接队列最大长度的log2 */
+	u8			synflood_warned; /* SYN Flood标志 */
 	/* 2 bytes hole, try to use */
-	int			qlen;
-	int			qlen_young;
+	int			qlen;  /* 当前连接请求块的数目 */
+	int			qlen_young;  /* 当前未重传过SYNACK的请求块数目 */
 	int			clock_hand;
-	u32			hash_rnd;
-	u32			nr_table_entries;
-	struct request_sock	*syn_table[0];
+	u32			hash_rnd; /* 一个随机数，用于计算hash值 */
+	u32			nr_table_entries; /* 半连接队列最大长度 */
+	struct request_sock	*syn_table[0];  /* 连接请求块的指针数组 */ // 这是一个hash表
 };
 
 /*
@@ -148,12 +148,12 @@ struct fastopen_queue {
  * are always protected from the main sock lock.
  */
 struct request_sock_queue {
-	struct request_sock	*rskq_accept_head;
-	struct request_sock	*rskq_accept_tail;
+	struct request_sock	*rskq_accept_head; /* ESTABLISHED状态请求块的头，等待accept */
+	struct request_sock	*rskq_accept_tail; /* ESTABLISHED状态请求块的尾 */
 	rwlock_t		syn_wait_lock;
 	u8			rskq_defer_accept;
 	/* 3 bytes hole, try to pack */
-	struct listen_sock	*listen_opt;
+	struct listen_sock	*listen_opt;  /* SYN_RECV状态的请求块，等待ACK */
 	struct fastopen_queue	*fastopenq; /* This is non-NULL iff TFO has been
 					     * enabled on this listener. Check
 					     * max_qlen != 0 in fastopen_queue

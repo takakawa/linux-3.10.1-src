@@ -134,7 +134,7 @@ struct inet_connection_sock {
 #define ICSK_TIME_DACK		2	/* Delayed ack timer */
 #define ICSK_TIME_PROBE0	3	/* Zero window probe timer */
 #define ICSK_TIME_EARLY_RETRANS 4	/* Early retransmit timer */
-#define ICSK_TIME_LOSS_PROBE	5	/* Tail loss probe timer */
+#define ICSK_TIME_LOSS_PROBE	5	/* Tail loss probe timer *///尾丢包http://perthcharles.github.io/2015/10/31/wiki-network-tcp-tlp/
 
 static inline struct inet_connection_sock *inet_csk(const struct sock *sk)
 {

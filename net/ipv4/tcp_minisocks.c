@@ -517,19 +517,19 @@ struct sock *tcp_check_req(struct sock *sk, struct sk_buff *skb,
 	if (th->doff > (sizeof(struct tcphdr)>>2)) {
 		tcp_parse_options(skb, &tmp_opt, 0, NULL);
 
-		if (tmp_opt.saw_tstamp) {
-			tmp_opt.ts_recent = req->ts_recent;
+		if (tmp_opt.saw_tstamp) { /*判断TCP选项中是否带有时间戳*/
+			tmp_opt.ts_recent = req->ts_recent; /*记录该时间戳*/
 			/* We do not store true stamp, but it is not required,
 			 * it can be estimated (approximately)
 			 * from another data.
 			 */
-			tmp_opt.ts_recent_stamp = get_seconds() - ((TCP_TIMEOUT_INIT/HZ)<<req->num_timeout);
-			paws_reject = tcp_paws_reject(&tmp_opt, th->rst);
+			tmp_opt.ts_recent_stamp = get_seconds() - ((TCP_TIMEOUT_INIT/HZ)<<req->num_timeout);/*记录下有效时间*/
+			paws_reject = tcp_paws_reject(&tmp_opt, th->rst); /*校验TCP序号是否有效*/
 		}
 	}
 
 	/* Check for pure retransmitted SYN. */
-	if (TCP_SKB_CB(skb)->seq == tcp_rsk(req)->rcv_isn &&
+	if (TCP_SKB_CB(skb)->seq == tcp_rsk(req)->rcv_isn && /*如果接收到的是客户端重发的SYN段，则作为SYN段处理*/
 	    flg == TCP_FLAG_SYN &&
 	    !paws_reject) {
 		/*
@@ -618,7 +618,7 @@ struct sock *tcp_check_req(struct sock *sk, struct sk_buff *skb,
 	 * elsewhere and is checked directly against the child socket rather
 	 * than req because user data may have been sent out.
 	 */
-	if ((flg & TCP_FLAG_ACK) && !fastopen &&
+	if ((flg & TCP_FLAG_ACK) && !fastopen &&  /* 如果接收段包含ACK标志，但确认序号不对，则返回“父”传输控制块，在上层函数处理 
 	    (TCP_SKB_CB(skb)->ack_seq !=
 	     tcp_rsk(req)->snt_isn + 1))
 		return sk;
@@ -629,12 +629,12 @@ struct sock *tcp_check_req(struct sock *sk, struct sk_buff *skb,
 	 */
 
 	/* RFC793: "first check sequence number". */
-
-	if (paws_reject || !tcp_in_window(TCP_SKB_CB(skb)->seq, TCP_SKB_CB(skb)->end_seq,
+/* 如果发生了回绕，或者接收序号不在接收窗口内 */
+	if (paws_reject || !tcp_in_window(TCP_SKB_CB(skb)->seq, TCP_SKB_CB(skb)->end_seq, /*如果ACK段序号无效或者序号不在接收窗口，则返回NULL，直接丢弃接收的段。*/  
 					  tcp_rsk(req)->rcv_nxt, tcp_rsk(req)->rcv_nxt + req->rcv_wnd)) {
 		/* Out of window: send ACK and drop. */
-		if (!(flg & TCP_FLAG_RST))
-			req->rsk_ops->send_ack(sk, skb, req);
+		if (!(flg & TCP_FLAG_RST)) /*判断是不是RST段*/
+			req->rsk_ops->send_ack(sk, skb, req); /*如果不是，则给对端发送ACK段*/
 		if (paws_reject)
 			NET_INC_STATS_BH(sock_net(sk), LINUX_MIB_PAWSESTABREJECTED);
 		return NULL;
@@ -642,7 +642,7 @@ struct sock *tcp_check_req(struct sock *sk, struct sk_buff *skb,
 
 	/* In sequence, PAWS is OK. */
 
-	if (tmp_opt.saw_tstamp && !after(TCP_SKB_CB(skb)->seq, tcp_rsk(req)->rcv_nxt))
+	if (tmp_opt.saw_tstamp && !after(TCP_SKB_CB(skb)->seq, tcp_rsk(req)->rcv_nxt))  /*如果有时间戳选项，同时ACK段序号正常*/
 		req->ts_recent = tmp_opt.rcv_tsval;
 
 	if (TCP_SKB_CB(skb)->seq == tcp_rsk(req)->rcv_isn) {
@@ -654,9 +654,9 @@ struct sock *tcp_check_req(struct sock *sk, struct sk_buff *skb,
 	/* RFC793: "second check the RST bit" and
 	 *	   "fourth, check the SYN bit"
 	 */
-	if (flg & (TCP_FLAG_RST|TCP_FLAG_SYN)) {
+	if (flg & (TCP_FLAG_RST|TCP_FLAG_SYN)) { /*如果段里有RST和SYN标志*/
 		TCP_INC_STATS_BH(sock_net(sk), TCP_MIB_ATTEMPTFAILS);
-		goto embryonic_reset;
+		goto embryonic_reset; /*跳转到rest复位未连接完成的连接*/
 	}
 
 	/* ACK sequence verified above, just make sure ACK is
@@ -665,7 +665,7 @@ struct sock *tcp_check_req(struct sock *sk, struct sk_buff *skb,
 	 * XXX (TFO) - if we ever allow "data after SYN", the
 	 * following check needs to be removed.
 	 */
-	if (!(flg & TCP_FLAG_ACK))
+	if (!(flg & TCP_FLAG_ACK))  /*按照正常的流程，该段中应该有ACK标志，如果没有，则直接返回NULL，丢弃该段*/
 		return NULL;
 
 	/* Got ACK for our SYNACK, so update baseline for SYNACK RTT sample. */
@@ -696,15 +696,16 @@ struct sock *tcp_check_req(struct sock *sk, struct sk_buff *skb,
 	 */
 	child = inet_csk(sk)->icsk_af_ops->syn_recv_sock(sk, skb, req, NULL);
 	if (child == NULL)
-		goto listen_overflow;
+		goto listen_overflow;  /*目前为止，第三次握手的ACK是有效的*/
 
-	inet_csk_reqsk_queue_unlink(sk, req, prev);
-	inet_csk_reqsk_queue_removed(sk, req);
+	inet_csk_reqsk_queue_unlink(sk, req, prev); // 从半连接队列删除minisock
+	inet_csk_reqsk_queue_removed(sk, req);    /* 更新半连接队列的长度，如果为0，则删除定时器 */
 
-	inet_csk_reqsk_queue_add(sk, req, child);
+	inet_csk_reqsk_queue_add(sk, req, child);  /* 把完成三次握手的连接请求块，和新的sock关联起来，并把它移入全连接队列中 */ 
 	return child;
 
-listen_overflow:
+listen_overflow:/*如果是由于服务器繁忙或者其他原因导致连接建立失败，且未设置sysctl_tcp_abort_on_overflow，则设置连接请求块中的acked标志，表示已接收到作为第三次握手的ACK段。*/
+
 	if (!sysctl_tcp_abort_on_overflow) {
 		inet_rsk(req)->acked = 1;
 		return NULL;

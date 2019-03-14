@@ -2758,8 +2758,8 @@ static void tcp_fastretrans_alert(struct sock *sk, int pkts_acked,
 	if (WARN_ON(!tp->sacked_out && tp->fackets_out))
 		tp->fackets_out = 0;
 
-	/* Now state machine starts.
-	 * A. ECE, hence prohibit cwnd undoing, the reduction is required. */
+	/* Now state machine starts.      // https://allen-kevin.github.io/2017/04/19/TCP%E9%87%8D%E7%82%B9%E7%B3%BB%E5%88%97%E4%B9%8B%E6%8B%A5%E5%A1%9E%E7%8A%B6%E6%80%81%E6%9C%BA/
+	 * A. ECE, hence prohibit cwnd undoing, the reduction is required. */ //拥塞控制状态机
 	if (flag & FLAG_ECE)
 		tp->prior_ssthresh = 0;
 
@@ -2807,7 +2807,7 @@ static void tcp_fastretrans_alert(struct sock *sk, int pkts_acked,
 		newly_acked_sacked = prior_packets - tp->packets_out +
 				     tp->sacked_out - prior_sacked;
 		break;
-	case TCP_CA_Loss:
+	case TCP_CA_Loss:  // RTO超时，进入loss态
 		tcp_process_loss(sk, flag, is_dupack);
 		if (icsk->icsk_ca_state != TCP_CA_Open)
 			return;
@@ -3322,7 +3322,7 @@ static void tcp_process_tlp_ack(struct sock *sk, u32 ack, int flag)
 }
 
 /* This routine deals with incoming acks, but not outgoing ones. */
-static int tcp_ack(struct sock *sk, const struct sk_buff *skb, int flag)
+static int tcp_ack(struct sock *sk, const struct sk_buff *skb, int flag) // 处理收到的ack包
 {
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	struct tcp_sock *tp = tcp_sk(sk);
@@ -5618,7 +5618,7 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb,
 		if (th->syn) {
 			if (th->fin)
 				goto discard;
-			if (icsk->icsk_af_ops->conn_request(sk, skb) < 0)
+			if (icsk->icsk_af_ops->conn_request(sk, skb) < 0) // ipv4下是tcp_v4_conn_request
 				return 1;
 
 			/* Now we have several options: In theory there is
@@ -5660,7 +5660,7 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb,
 		WARN_ON_ONCE(sk->sk_state != TCP_SYN_RECV &&
 		    sk->sk_state != TCP_FIN_WAIT1);
 
-		if (tcp_check_req(sk, skb, req, NULL, true) == NULL)
+		if (tcp_check_req(sk, skb, req, NULL, true) == NULL) // 重要一步是处理了半连接队列列长连接队列的转换，比如在SYN_RECV下收到ACK
 			goto discard;
 	}
 

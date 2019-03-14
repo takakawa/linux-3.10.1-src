@@ -497,11 +497,11 @@ void tcp_write_timer_handler(struct sock *sk)
 	case ICSK_TIME_LOSS_PROBE:
 		tcp_send_loss_probe(sk);
 		break;
-	case ICSK_TIME_RETRANS:
+	case ICSK_TIME_RETRANS:/* 重传定时器重传 */
 		icsk->icsk_pending = 0;
 		tcp_retransmit_timer(sk);
 		break;
-	case ICSK_TIME_PROBE0:
+	case ICSK_TIME_PROBE0:/* 坚持定时器探测0窗口 */
 		icsk->icsk_pending = 0;
 		tcp_probe_timer(sk);
 		break;

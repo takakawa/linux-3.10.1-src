@@ -197,14 +197,14 @@ static int ip_local_deliver_finish(struct sk_buff *skb)
 
 	rcu_read_lock();
 	{
-		int protocol = ip_hdr(skb)->protocol;
+		int protocol = ip_hdr(skb)->protocol;  // 取ip协议中的protocol字段
 		const struct net_protocol *ipprot;
 		int raw;
 
 	resubmit:
 		raw = raw_local_deliver(skb, protocol);
 
-		ipprot = rcu_dereference(inet_protos[protocol]);
+		ipprot = rcu_dereference(inet_protos[protocol]);  // 直接索引数组下标
 		if (ipprot != NULL) {
 			int ret;
 
@@ -214,7 +214,8 @@ static int ip_local_deliver_finish(struct sk_buff *skb)
 					goto out;
 				}
 				nf_reset(skb);
-			}
+			}	/* 调用L4层协议处理函数 */
+			/* 通常会是tcp_v4_rcv, udp_rcv, icmp_rcv和igmp_rcv */
 			ret = ipprot->handler(skb);
 			if (ret < 0) {
 				protocol = -ret;
@@ -256,7 +257,7 @@ int ip_local_deliver(struct sk_buff *skb)
 	}
 
 	return NF_HOOK(NFPROTO_IPV4, NF_INET_LOCAL_IN, skb, skb->dev, NULL,
-		       ip_local_deliver_finish);
+		       ip_local_deliver_finish); // 内部会根据ip里不同的协议号调用上层的Handler
 }
 
 static inline bool ip_rcv_options(struct sk_buff *skb)

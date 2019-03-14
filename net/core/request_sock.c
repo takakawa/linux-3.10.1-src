@@ -43,7 +43,7 @@ int reqsk_queue_alloc(struct request_sock_queue *queue,
 	size_t lopt_size = sizeof(struct listen_sock);
 	struct listen_sock *lopt;
 
-	nr_table_entries = min_t(u32, nr_table_entries, sysctl_max_syn_backlog);
+	nr_table_entries = min_t(u32, nr_table_entries, sysctl_max_syn_backlog);  // sysctl 配置
 	nr_table_entries = max_t(u32, nr_table_entries, 8);
 	nr_table_entries = roundup_pow_of_two(nr_table_entries + 1);
 	lopt_size += nr_table_entries * sizeof(struct request_sock *);

@@ -584,7 +584,7 @@ static int show_smap(struct seq_file *m, void *v, int is_pid)
 	struct vm_area_struct *vma = v;
 	struct mem_size_stats mss;
 	struct mm_walk smaps_walk = {
-		.pmd_entry = smaps_pte_range,
+		.pmd_entry = smaps_pte_range,  //遍历到最后会执行这个函数
 		.mm = vma->vm_mm,
 		.private = &mss,
 	};

@@ -518,16 +518,16 @@ struct request_sock *inet_csk_search_req(const struct sock *sk,
 }
 EXPORT_SYMBOL_GPL(inet_csk_search_req);
 
-void inet_csk_reqsk_queue_hash_add(struct sock *sk, struct request_sock *req,
+void inet_csk_reqsk_queue_hash_add(struct sock *sk, struct request_sock *req,   // 把连接请求块链入半连接队列中
 				   unsigned long timeout)
 {
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	struct listen_sock *lopt = icsk->icsk_accept_queue.listen_opt;
 	const u32 h = inet_synq_hash(inet_rsk(req)->rmt_addr, inet_rsk(req)->rmt_port,
-				     lopt->hash_rnd, lopt->nr_table_entries);
+				     lopt->hash_rnd, lopt->nr_table_entries);  // 计算hash值（syn_table是hash表）
 
 	reqsk_queue_hash_req(&icsk->icsk_accept_queue, h, req, timeout);
-	inet_csk_reqsk_queue_added(sk, timeout);
+	inet_csk_reqsk_queue_added(sk, timeout);  // 设置连接请求块的超时时间、按照hash值把它链入半连接队列
 }
 EXPORT_SYMBOL_GPL(inet_csk_reqsk_queue_hash_add);
 
@@ -752,7 +752,7 @@ int inet_csk_listen_start(struct sock *sk, const int nr_table_entries)
 {
 	struct inet_sock *inet = inet_sk(sk);
 	struct inet_connection_sock *icsk = inet_csk(sk);
-	int rc = reqsk_queue_alloc(&icsk->icsk_accept_queue, nr_table_entries);
+	int rc = reqsk_queue_alloc(&icsk->icsk_accept_queue, nr_table_entries);  // nr_table_entries即listen时传入的backlog
 
 	if (rc != 0)
 		return rc;

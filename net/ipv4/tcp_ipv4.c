@@ -897,7 +897,7 @@ bool tcp_syn_flood_action(struct sock *sk,
 
 
 
-#ifdef CONFIG_SYN_COOKIES
+#ifdef CONFIG_SYN_COOKIES            // 线上此宏为值，是cookies的版本
 	if (sysctl_tcp_syncookies) {
 		msg = "Sending cookies";
 		want_cookie = true;
@@ -1487,7 +1487,7 @@ int tcp_v4_conn_request(struct sock *sk, struct sk_buff *skb)
 	 * limitations, they conserve resources and peer is
 	 * evidently real one.
 	 */
-	if (inet_csk_reqsk_queue_is_full(sk) && !isn) {
+	if (inet_csk_reqsk_queue_is_full(sk) && !isn) {  // icsk_accept_queue满且没有when?
 		want_cookie = tcp_syn_flood_action(sk, skb, "TCP");
 		if (!want_cookie)
 			goto drop;
@@ -1498,7 +1498,7 @@ int tcp_v4_conn_request(struct sock *sk, struct sk_buff *skb)
 	 * clogging syn queue with openreqs with exponentially increasing
 	 * timeout.
 	 */
-	if (sk_acceptq_is_full(sk) && inet_csk_reqsk_queue_young(sk) > 1) {
+	if (sk_acceptq_is_full(sk) && inet_csk_reqsk_queue_young(sk) > 1) { // 半连接队列满了
 		NET_INC_STATS_BH(sock_net(sk), LINUX_MIB_LISTENOVERFLOWS);
 		goto drop;
 	}
@@ -1652,7 +1652,7 @@ struct sock *tcp_v4_syn_recv_sock(struct sock *sk, struct sk_buff *skb,
 #endif
 	struct ip_options_rcu *inet_opt;
 
-	if (sk_acceptq_is_full(sk))
+	if (sk_acceptq_is_full(sk))  // 如果做为server,我在listen,我收到syn包后，就会将这个连接设置成establish?然后从半连接队列移出？
 		goto exit_overflow;
 
 	newsk = tcp_create_openreq_child(sk, req, skb);
@@ -1746,7 +1746,7 @@ static struct sock *tcp_v4_hnd_req(struct sock *sk, struct sk_buff *skb)
 	struct request_sock *req = inet_csk_search_req(sk, &prev, th->source,
 						       iph->saddr, iph->daddr); //查找半连接队列，返回req，这个队列中的是较小的request_sock
 	if (req)
-		return tcp_check_req(sk, skb, req, prev, false);
+		return tcp_check_req(sk, skb, req, prev, false); // 此函数回检查是否可以从半连接删除request_sock并将sock加入全连接队列
 
 	nsk = inet_lookup_established(sock_net(sk), &tcp_hashinfo, iph->saddr,
 			th->source, iph->daddr, th->dest, inet_iif(skb));
@@ -1848,7 +1848,7 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 	} else
 		sock_rps_save_rxhash(sk, skb);
 
-	if (tcp_rcv_state_process(sk, skb, tcp_hdr(skb), skb->len)) {
+	if (tcp_rcv_state_process(sk, skb, tcp_hdr(skb), skb->len)) {  // 处理状态机
 		rsk = sk;
 		goto reset;
 	}
