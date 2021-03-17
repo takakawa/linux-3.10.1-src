@@ -1462,7 +1462,7 @@ static int tcp_v4_conn_req_fastopen(struct sock *sk,
 	return 0;
 }
 
-int tcp_v4_conn_request(struct sock *sk, struct sk_buff *skb)
+int tcp_v4_conn_request(struct sock *sk, struct sk_buff *skb) // 处理syn
 {
 	struct tcp_options_received tmp_opt;
 	struct request_sock *req;
@@ -1471,7 +1471,7 @@ int tcp_v4_conn_request(struct sock *sk, struct sk_buff *skb)
 	struct dst_entry *dst = NULL;
 	__be32 saddr = ip_hdr(skb)->saddr;
 	__be32 daddr = ip_hdr(skb)->daddr;
-	__u32 isn = TCP_SKB_CB(skb)->when;
+	__u32 isn = TCP_SKB_CB(skb)->when; // 发出时间，对于收包，这个字段为0？ ---本注释不一定准确 
 	bool want_cookie = false;
 	struct flowi4 fl4;
 	struct tcp_fastopen_cookie foc = { .len = -1 };
@@ -1487,7 +1487,7 @@ int tcp_v4_conn_request(struct sock *sk, struct sk_buff *skb)
 	 * limitations, they conserve resources and peer is
 	 * evidently real one.
 	 */
-	if (inet_csk_reqsk_queue_is_full(sk) && !isn) {  // icsk_accept_queue满且没有when?
+	if (inet_csk_reqsk_queue_is_full(sk) && !isn) {  // icsk_accept_queue满且没有when?，没有when即收包？
 		want_cookie = tcp_syn_flood_action(sk, skb, "TCP");
 		if (!want_cookie)
 			goto drop;
@@ -1595,11 +1595,11 @@ int tcp_v4_conn_request(struct sock *sk, struct sk_buff *skb)
 	 * latter to remove its dependency on the current implementation
 	 * of tcp_v4_send_synack()->tcp_select_initial_window().
 	 */
-	skb_synack = tcp_make_synack(sk, dst, req,
+	skb_synack = tcp_make_synack(sk, dst, req,                           // 生成synack包
 	    fastopen_cookie_present(&valid_foc) ? &valid_foc : NULL);
 
 	if (skb_synack) {
-		__tcp_v4_send_check(skb_synack, ireq->loc_addr, ireq->rmt_addr);
+		__tcp_v4_send_check(skb_synack, ireq->loc_addr, ireq->rmt_addr);  // 发送synack
 		skb_set_queue_mapping(skb_synack, skb_get_queue_mapping(skb));
 	} else
 		goto drop_and_free;
@@ -1736,19 +1736,19 @@ put_and_exit:
 }
 EXPORT_SYMBOL(tcp_v4_syn_recv_sock);
 
-static struct sock *tcp_v4_hnd_req(struct sock *sk, struct sk_buff *skb)
+static struct sock *tcp_v4_hnd_req(struct sock *sk, struct sk_buff *skb)  
 {
 	struct tcphdr *th = tcp_hdr(skb);
 	const struct iphdr *iph = ip_hdr(skb);
 	struct sock *nsk;
 	struct request_sock **prev;
 	/* Find possible connection requests. */
-	struct request_sock *req = inet_csk_search_req(sk, &prev, th->source,
-						       iph->saddr, iph->daddr); //查找半连接队列，返回req，这个队列中的是较小的request_sock
+	struct request_sock *req = inet_csk_search_req(sk, &prev, th->source, // 对于收到的第一个syn包，这里找不到
+						       iph->saddr, iph->daddr); //查找半连接队列，返回req，这个队列中的是较小的request_sock，问题来了，reqeust_sock是什么时候生成的？答：在tcp_v4_conn_request中加入
 	if (req)
 		return tcp_check_req(sk, skb, req, prev, false); // 此函数回检查是否可以从半连接删除request_sock并将sock加入全连接队列
 
-	nsk = inet_lookup_established(sock_net(sk), &tcp_hashinfo, iph->saddr,
+	nsk = inet_lookup_established(sock_net(sk), &tcp_hashinfo, iph->saddr, // 对于收到的第一个syn包，这里也找不到
 			th->source, iph->daddr, th->dest, inet_iif(skb));
 
 	if (nsk) {
@@ -1761,10 +1761,10 @@ static struct sock *tcp_v4_hnd_req(struct sock *sk, struct sk_buff *skb)
 	}
 
 #ifdef CONFIG_SYN_COOKIES
-	if (!th->syn)
+	if (!th->syn)                 // 不是syn,注意第一个syn会进入此函数然后自己发synack，第二个ack也会进入此函数，并会走到这里？cookies的时候应该没有request_sock?
 		sk = cookie_v4_check(sk, skb, &(IPCB(skb)->opt));
 #endif
-	return sk;
+	return sk;   // 返回sk
 }
 
 static __sum16 tcp_v4_checksum_init(struct sk_buff *skb)
@@ -1833,13 +1833,13 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 		goto csum_err;
 
 	if (sk->sk_state == TCP_LISTEN) {
-		struct sock *nsk = tcp_v4_hnd_req(sk, skb);
-		if (!nsk)
+		struct sock *nsk = tcp_v4_hnd_req(sk, skb);   // tcp状态机处理前先处理这个,说明： nsk应该是New sock,因为当syn包过来时，tcp_v4_do_rcv的第一个参数是listen的sk,我们需要生成针对本连接的新sk
+		if (!nsk)                          // 对于找不到request_sock的情况，直接返回sk，到状态处理中去添加request_sock
 			goto discard;
 
-		if (nsk != sk) {
+		if (nsk != sk) {                              // 在tcp_v4_hnd_req中如果能找到request_sock就返回，如果找不到返回的是sk本身，故这里判断
 			sock_rps_save_rxhash(nsk, skb);
-			if (tcp_child_process(sk, nsk, skb)) {
+			if (tcp_child_process(sk, nsk, skb)) {   // 注意这个函数参数的稳定定义，parent=sk,child=nsk,生成的child-state= SYN_RECV
 				rsk = nsk;
 				goto reset;
 			}
@@ -1999,7 +1999,7 @@ int tcp_v4_rcv(struct sk_buff *skb)
 	TCP_SKB_CB(skb)->ip_dsfield = ipv4_get_dsfield(iph);
 	TCP_SKB_CB(skb)->sacked	 = 0;
 
-	sk = __inet_lookup_skb(&tcp_hashinfo, skb, th->source, th->dest);
+	sk = __inet_lookup_skb(&tcp_hashinfo, skb, th->source, th->dest);// 第一次肯定是nosk? 答： no,一个包过来要么是已经建立的连接，必须可以找到sk，要么是发起建连，这时返回的sk是listen的sk
 	if (!sk)
 		goto no_tcp_socket;
 
@@ -2058,7 +2058,7 @@ csum_error:
 bad_packet:
 		TCP_INC_STATS_BH(net, TCP_MIB_INERRS);
 	} else {
-		tcp_v4_send_reset(NULL, skb);
+		tcp_v4_send_reset(NULL, skb);           // 这个即平常我们如果向一个没有侦听端口的机器发syn包收到reset的逻辑
 	}
 
 discard_it:
@@ -2130,7 +2130,7 @@ const struct inet_connection_sock_af_ops ipv4_specific = {
 	.send_check	   = tcp_v4_send_check,
 	.rebuild_header	   = inet_sk_rebuild_header,
 	.sk_rx_dst_set	   = inet_sk_rx_dst_set,
-	.conn_request	   = tcp_v4_conn_request,
+	.conn_request	   = tcp_v4_conn_request,  // 状态机处理之listen态入口,即收到syn包的处理函数
 	.syn_recv_sock	   = tcp_v4_syn_recv_sock,
 	.net_header_len	   = sizeof(struct iphdr),
 	.setsockopt	   = ip_setsockopt,

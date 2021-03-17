@@ -424,7 +424,7 @@ void tcp_retransmit_timer(struct sock *sk)
 		 */
 		if (!icsk->icsk_retransmits)
 			icsk->icsk_retransmits = 1;
-		inet_csk_reset_xmit_timer(sk, ICSK_TIME_RETRANS,
+		inet_csk_reset_xmit_timer(sk, ICSK_TIME_RETRANS,              // 重置重传定时器
 					  min(icsk->icsk_rto, TCP_RESOURCE_PROBE_INTERVAL),
 					  TCP_RTO_MAX);
 		goto out;
@@ -555,7 +555,7 @@ void tcp_set_keepalive(struct sock *sk, int val)
 }
 
 
-static void tcp_keepalive_timer (unsigned long data)
+static void tcp_keepalive_timer (unsigned long data)   // tcp keepalive 的timer 的handler,同时兼任 listen太的syacntimer，因为keeplive是链接建立之后才用，所以可以一分为二
 {
 	struct sock *sk = (struct sock *) data;
 	struct inet_connection_sock *icsk = inet_csk(sk);
@@ -564,18 +564,18 @@ static void tcp_keepalive_timer (unsigned long data)
 
 	/* Only process if socket is not in use. */
 	bh_lock_sock(sk);
-	if (sock_owned_by_user(sk)) {
+	if (sock_owned_by_user(sk)) {  //应用程序在使用该sock则不处理
 		/* Try again later. */
 		inet_csk_reset_keepalive_timer (sk, HZ/20);
 		goto out;
 	}
 
-	if (sk->sk_state == TCP_LISTEN) {
+	if (sk->sk_state == TCP_LISTEN) {   // 判断当是keeplivetimer还是syacktimer
 		tcp_synack_timer(sk);
 		goto out;
 	}
 
-	if (sk->sk_state == TCP_FIN_WAIT2 && sock_flag(sk, SOCK_DEAD)) {
+	if (sk->sk_state == TCP_FIN_WAIT2 && sock_flag(sk, SOCK_DEAD)) {  //FIN_WAIT2定时器超时处理
 		if (tp->linger2 >= 0) {
 			const int tmo = tcp_fin_time(sk) - TCP_TIMEWAIT_LEN;
 
@@ -588,16 +588,16 @@ static void tcp_keepalive_timer (unsigned long data)
 		goto death;
 	}
 
-	if (!sock_flag(sk, SOCK_KEEPOPEN) || sk->sk_state == TCP_CLOSE)
+	if (!sock_flag(sk, SOCK_KEEPOPEN) || sk->sk_state == TCP_CLOSE)  //没有设置SO_KEEPALIVE，或者连接在关闭状态
 		goto out;
 
-	elapsed = keepalive_time_when(tp);
+	elapsed = keepalive_time_when(tp);  //sysctl_tcp_keepalive_time=7200， 2小时
 
 	/* It is alive without keepalive 8) */
-	if (tp->packets_out || tcp_send_head(sk))
+	if (tp->packets_out || tcp_send_head(sk))  // 连接在活跃状态，不需要keepalive
 		goto resched;
-
-	elapsed = keepalive_time_elapsed(tp);
+ 
+	elapsed = keepalive_time_elapsed(tp);   //距离上一次收到数据间隔的时间
 
 	if (elapsed >= keepalive_time_when(tp)) {
 		/* If the TCP_USER_TIMEOUT option is enabled, use that
@@ -607,12 +607,12 @@ static void tcp_keepalive_timer (unsigned long data)
 		    elapsed >= icsk->icsk_user_timeout &&
 		    icsk->icsk_probes_out > 0) ||
 		    (icsk->icsk_user_timeout == 0 &&
-		    icsk->icsk_probes_out >= keepalive_probes(tp))) {
+		    icsk->icsk_probes_out >= keepalive_probes(tp))) {  // 判断是否超出probe数
 			tcp_send_active_reset(sk, GFP_ATOMIC);
 			tcp_write_err(sk);
 			goto out;
 		}
-		if (tcp_write_wakeup(sk) <= 0) {
+		if (tcp_write_wakeup(sk) <= 0) { //发送探测包
 			icsk->icsk_probes_out++;
 			elapsed = keepalive_intvl_when(tp);
 		} else {
@@ -622,7 +622,7 @@ static void tcp_keepalive_timer (unsigned long data)
 			elapsed = TCP_RESOURCE_PROBE_INTERVAL;
 		}
 	} else {
-		/* It is tp->rcv_tstamp + keepalive_time_when(tp) */
+		/* It is tp->rcv_tstamp + keepalive_time_when(tp) */  // keeplive未到时，重置超时时间。 内核是这么搞的：链接建立之后，keeplivetimer就启动的，超时时间是sysctl配置，当timer到期的时候，如果已经大于sysctl则发probe，如果没到（因为包是持续收的，last_recv一直更新,则链接idle的时间肯定小于sysctl_tcp_keepalive_time，则timer重新计算一下新的超时时间即可，再到期算法同）
 		elapsed = keepalive_time_when(tp) - elapsed;
 	}
 

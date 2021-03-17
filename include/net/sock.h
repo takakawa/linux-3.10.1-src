@@ -378,7 +378,7 @@ struct sock {
 	long			sk_rcvtimeo;
 	long			sk_sndtimeo;
 	void			*sk_protinfo;
-	struct timer_list	sk_timer;
+	struct timer_list	sk_timer;    // keepalive timer
 	ktime_t			sk_stamp;
 	struct socket		*sk_socket;
 	void			*sk_user_data;
@@ -392,10 +392,10 @@ struct sock {
 	__u32			sk_mark;
 	u32			sk_classid;
 	struct cg_proto		*sk_cgrp;
-	void			(*sk_state_change)(struct sock *sk);
-	void			(*sk_data_ready)(struct sock *sk, int bytes);
-	void			(*sk_write_space)(struct sock *sk);
-	void			(*sk_error_report)(struct sock *sk);
+	void			(*sk_state_change)(struct sock *sk);// 是一个sock状态改变的回调函数，也就是当sock的状态变迁了(比如从established到clos_wait状态),那么就会调用这个函数。 
+	void			(*sk_data_ready)(struct sock *sk, int bytes); // 这个函数是当当前sock有可读数据的时候，就会被调用
+	void			(*sk_write_space)(struct sock *sk);  // 这个函数是当当前的sock有可写的空间的时候，就会被调用
+	void			(*sk_error_report)(struct sock *sk); // 这个函数是当当前的sock出错(比如收到一个rst)后就会被调
 	int			(*sk_backlog_rcv)(struct sock *sk,
 						  struct sk_buff *skb);
 	void                    (*sk_destruct)(struct sock *sk);

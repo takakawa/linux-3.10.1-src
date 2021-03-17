@@ -486,7 +486,7 @@ static int __init init_sched_debug_procfs(void)
 
 __initcall(init_sched_debug_procfs);
 
-void proc_sched_show_task(struct task_struct *p, struct seq_file *m)
+void proc_sched_show_task(struct task_struct *p, struct seq_file *m)   // /proc/pid/sched 
 {
 	unsigned long nr_switches;
 

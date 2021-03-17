@@ -135,10 +135,10 @@ struct task_group {
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* schedulable entities of this group on each cpu */
-	struct sched_entity **se;
+	struct sched_entity **se;                    // se->my_q = cfs_rq;下边只是一个快捷方式
 	/* runqueue "owned" by this group on each cpu */
 	struct cfs_rq **cfs_rq;
-	unsigned long shares;
+	unsigned long shares;   /* /sys/fs/cgroups/cpu.shares by gaochcuan */
 
 	atomic_t load_weight;
 	atomic64_t load_avg;
@@ -147,7 +147,7 @@ struct task_group {
 
 #ifdef CONFIG_RT_GROUP_SCHED
 	struct sched_rt_entity **rt_se;
-	struct rt_rq **rt_rq;
+	struct rt_rq **rt_rq;                      
 
 	struct rt_bandwidth rt_bandwidth;
 #endif
@@ -238,7 +238,7 @@ struct cfs_bandwidth { };
 
 /* CFS-related fields in a runqueue */
 struct cfs_rq {
-	struct load_weight load;
+	struct load_weight load;   //sum of the weights of the tasks queued on the runqueue.
 	unsigned int nr_running, h_nr_running;
 
 	u64 exec_clock;
@@ -302,7 +302,7 @@ struct cfs_rq {
 	 *
 	 * leaf_cfs_rq_list ties together list of leaf cfs_rq's in a cpu. This
 	 * list is used during load balance.
-	 */
+	 */                    // 然而有非leaf 节点也有task，这个场景在哪处理？
 	int on_list;
 	struct list_head leaf_cfs_rq_list;
 	struct task_group *tg;	/* group that "owns" this runqueue */

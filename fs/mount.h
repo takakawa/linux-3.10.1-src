@@ -1,12 +1,12 @@
 #include <linux/mount.h>
 #include <linux/seq_file.h>
 #include <linux/poll.h>
-
+// mnt namespace为进程提供独立的文件系统视图。当clone（）函数中带有CLONE_NEWNS标志时，新的mnt ns在子进程中被创建，新的mnt ns是一份父mnt ns的拷贝， 但是在子进程中调用mount安装的文件系统，将独立于父进程的mnt ns，只出现在新的mnt ns上（如果考虑到shared subtree，情况会复杂许多）。
 struct mnt_namespace {
 	atomic_t		count;
 	unsigned int		proc_inum;
-	struct mount *	root;
-	struct list_head	list;
+	struct mount *	root;  //当前namespace下的根文件系统
+	struct list_head	list;  //当前namespace下的文件系统链表
 	struct user_namespace	*user_ns;
 	u64			seq;	/* Sequence number to prevent loops */
 	wait_queue_head_t poll;

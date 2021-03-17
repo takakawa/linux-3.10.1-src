@@ -177,7 +177,7 @@ void sched_init_granularity(void)
  * delta *= weight / lw
  */
 static unsigned long
-calc_delta_mine(unsigned long delta_exec, unsigned long weight,
+calc_delta_mine(unsigned long delta_exec, unsigned long weight,   // delta / （se->load / NICE_0_LOAD）= delta * NICE_0_LOAD / lw
 		struct load_weight *lw)
 {
 	u64 tmp;
@@ -455,7 +455,7 @@ static inline int entity_before(struct sched_entity *a,
 	return (s64)(a->vruntime - b->vruntime) < 0;
 }
 
-static void update_min_vruntime(struct cfs_rq *cfs_rq)
+static void update_min_vruntime(struct cfs_rq *cfs_rq) // 更新cfs_rq->min_vruntime为leftmost和cur中的最小值
 {
 	u64 vruntime = cfs_rq->min_vruntime;
 
@@ -597,7 +597,7 @@ int sched_proc_update_handler(struct ctl_table *table, int write,
 static inline unsigned long
 calc_delta_fair(unsigned long delta, struct sched_entity *se)
 {
-	if (unlikely(se->load.weight != NICE_0_LOAD))
+	if (unlikely(se->load.weight != NICE_0_LOAD))                                // vdelta =  delta / （se->load / NICE_0_LOAD）
 		delta = calc_delta_mine(delta, NICE_0_LOAD, &se->load);
 
 	return delta;
@@ -1012,7 +1012,7 @@ account_entity_enqueue(struct cfs_rq *cfs_rq, struct sched_entity *se)
 	if (entity_is_task(se))
 		list_add(&se->group_node, &rq_of(cfs_rq)->cfs_tasks);
 #endif
-	cfs_rq->nr_running++;
+	cfs_rq->nr_running++;             // se 非task 也加加吗？ nr统计的是se的数量？
 }
 
 static void
@@ -1736,7 +1736,7 @@ enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
 		__enqueue_entity(cfs_rq, se);
 	se->on_rq = 1;
 
-	if (cfs_rq->nr_running == 1) {
+	if (cfs_rq->nr_running == 1) { // 叶子节点的rq 有1个才为叶子？才能添加？
 		list_add_leaf_cfs_rq(cfs_rq);
 		check_enqueue_throttle(cfs_rq);
 	}
@@ -1877,7 +1877,7 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 static void
 set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
 {
-	/* 'current' is not kept within the tree. */
+	/* 'current' is not kept within the tree. */  // 当前运行的不在rq里管理，即运行的这一个会从rq里摘除
 	if (se->on_rq) {
 		/*
 		 * Any task has to be enqueued before it get to execute on
@@ -1889,7 +1889,7 @@ set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
 	}
 
 	update_stats_curr_start(cfs_rq, se);
-	cfs_rq->curr = se;
+	cfs_rq->curr = se;          
 #ifdef CONFIG_SCHEDSTATS
 	/*
 	 * Track our maximum slice length, if the CPU's load is at
@@ -1948,7 +1948,7 @@ static struct sched_entity *pick_next_entity(struct cfs_rq *cfs_rq)
 
 static void check_cfs_rq_runtime(struct cfs_rq *cfs_rq);
 
-static void put_prev_entity(struct cfs_rq *cfs_rq, struct sched_entity *prev)
+static void put_prev_entity(struct cfs_rq *cfs_rq, struct sched_entity *prev)  // cfs_rq = prev->cfs_rq by gaochuan
 {
 	/*
 	 * If still on the runqueue then deactivate_task()
@@ -3617,7 +3617,7 @@ static struct task_struct *pick_next_task_fair(struct rq *rq)
 		return NULL;
 
 	do {
-		se = pick_next_entity(cfs_rq);
+		se = pick_next_entity(cfs_rq);   // 树形遍历，直到叶子，设置了中间每个cfs_rq的curr = se
 		set_next_entity(cfs_rq, se);
 		cfs_rq = group_cfs_rq(se);
 	} while (cfs_rq);
@@ -3637,7 +3637,7 @@ static void put_prev_task_fair(struct rq *rq, struct task_struct *prev)
 	struct sched_entity *se = &prev->se;
 	struct cfs_rq *cfs_rq;
 
-	for_each_sched_entity(se) {
+	for_each_sched_entity(se) { // se 树向上遍历
 		cfs_rq = cfs_rq_of(se);
 		put_prev_entity(cfs_rq, se);
 	}
@@ -6009,7 +6009,7 @@ int alloc_fair_sched_group(struct task_group *tg, struct task_group *parent)
 			goto err_free_rq;
 
 		init_cfs_rq(cfs_rq);
-		init_tg_cfs_entry(tg, cfs_rq, se, i, parent->se[i]);
+		init_tg_cfs_entry(tg, cfs_rq, se, i, parent->se[i]);  // se->my_q = cfs_rq;
 	}
 
 	return 1;
@@ -6066,7 +6066,7 @@ void init_tg_cfs_entry(struct task_group *tg, struct cfs_rq *cfs_rq,
 
 static DEFINE_MUTEX(shares_mutex);
 
-int sched_group_set_shares(struct task_group *tg, unsigned long shares)
+int sched_group_set_shares(struct task_group *tg, unsigned long shares)   // echo 1000 >> cpu.shares 
 {
 	int i;
 	unsigned long flags;

@@ -91,7 +91,7 @@ struct bio {
 	 * double allocations for a small number of bio_vecs. This member
 	 * MUST obviously be kept at the very end of the bio.
 	 */
-	struct bio_vec		bi_inline_vecs[0];
+	struct bio_vec		bi_inline_vecs[0];    // 又是这个技俩
 };
 
 #define BIO_RESET_BYTES		offsetof(struct bio, bi_max_vecs)

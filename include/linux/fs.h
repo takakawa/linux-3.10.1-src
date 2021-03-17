@@ -532,7 +532,7 @@ struct inode {
 
 	const struct inode_operations	*i_op;
 	struct super_block	*i_sb;
-	struct address_space	*i_mapping;
+	struct address_space	*i_mapping;   // cache
 
 #ifdef CONFIG_SECURITY
 	void			*i_security;

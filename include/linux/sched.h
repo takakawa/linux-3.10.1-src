@@ -1209,7 +1209,7 @@ struct task_struct {
 	struct fs_struct *fs;
 /* open file information */
 	struct files_struct *files;
-/* namespaces */
+/* namespaces */                    // 命名空间： https://hustcat.github.io/namespace-implement-1/
 	struct nsproxy *nsproxy;
 /* signal handlers */
 	struct signal_struct *signal;

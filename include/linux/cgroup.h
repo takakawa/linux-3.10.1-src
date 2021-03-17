@@ -361,7 +361,7 @@ struct css_set {
 	 * cgroups referenced from this css_set. Protected by
 	 * css_set_lock
 	 */
-	struct list_head cg_links;
+	struct list_head cg_links;   /* cg_cgroup_link 的头 ,每个节点是cg_cgroup_link*/ 
 
 	/*
 	 * Set of subsystem states, one for each subsystem. This array

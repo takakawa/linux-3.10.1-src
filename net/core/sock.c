@@ -2137,7 +2137,7 @@ static void sock_def_wakeup(struct sock *sk)
 
 	rcu_read_lock();
 	wq = rcu_dereference(sk->sk_wq);
-	if (wq_has_sleeper(wq))
+	if (wq_has_sleeper(wq)) //先检测是否有进程阻塞在当前的sock上，如果有才会去唤醒等待队列
 		wake_up_interruptible_all(&wq->wait);
 	rcu_read_unlock();
 }
@@ -2160,7 +2160,7 @@ static void sock_def_readable(struct sock *sk, int len)
 
 	rcu_read_lock();
 	wq = rcu_dereference(sk->sk_wq);
-	if (wq_has_sleeper(wq))
+	if (wq_has_sleeper(wq))  //首先判断是否有进程休眠在sock上。如果有则同步唤醒所有的阻塞的进程，这里注意传递的参数是POLLIN，这样我们就能通过epoll这类来捕捉事件了
 		wake_up_interruptible_sync_poll(&wq->wait, POLLIN | POLLPRI |
 						POLLRDNORM | POLLRDBAND);
 	sk_wake_async(sk, SOCK_WAKE_WAITD, POLL_IN);

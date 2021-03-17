@@ -3739,7 +3739,7 @@ static inline bool tcp_sequence(const struct tcp_sock *tp, u32 seq, u32 end_seq)
 }
 
 /* When we get a reset we do this. */
-void tcp_reset(struct sock *sk)
+void tcp_reset(struct sock *sk)          // 收到rst时
 {
 	/* We want the right error as BSD sees it (and indeed as we do). */
 	switch (sk->sk_state) {
@@ -3777,7 +3777,7 @@ void tcp_reset(struct sock *sk)
  *
  *	If we are in FINWAIT-2, a received FIN moves us to TIME-WAIT.
  */
-static void tcp_fin(struct sock *sk)
+static void tcp_fin(struct sock *sk)                // 收到fin包的处理函数
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 
@@ -4294,7 +4294,7 @@ err:
 	return -ENOMEM;
 }
 
-static void tcp_data_queue(struct sock *sk, struct sk_buff *skb)
+static void tcp_data_queue(struct sock *sk, struct sk_buff *skb)   // 收到的fin在此处理
 {
 	const struct tcphdr *th = tcp_hdr(skb);
 	struct tcp_sock *tp = tcp_sk(sk);
@@ -5609,14 +5609,14 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb,
 		goto discard;
 
 	case TCP_LISTEN:
-		if (th->ack)
+		if (th->ack)   // 收到ack
 			return 1;
 
-		if (th->rst)
+		if (th->rst)   // 收到rst
 			goto discard;
 
-		if (th->syn) {
-			if (th->fin)
+		if (th->syn) { // 收到syn
+			if (th->fin)  // 有fin
 				goto discard;
 			if (icsk->icsk_af_ops->conn_request(sk, skb) < 0) // ipv4下是tcp_v4_conn_request
 				return 1;
@@ -5670,13 +5670,13 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb,
 	if (!tcp_validate_incoming(sk, skb, th, 0))
 		return 0;
 
-	/* step 5: check the ACK field */
+	/* step 5: check the ACK field */   // 处理ack包
 	if (true) {
 		int acceptable = tcp_ack(sk, skb, FLAG_SLOWPATH |
 						  FLAG_UPDATE_TS_RECENT) > 0;
 
 		switch (sk->sk_state) {
-		case TCP_SYN_RECV:
+		case TCP_SYN_RECV:       // 当前处于SYN_RECV，收到ack
 			if (acceptable) {
 				/* Once we leave TCP_SYN_RECV, we no longer
 				 * need req so release it.
@@ -5745,7 +5745,7 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb,
 			}
 			break;
 
-		case TCP_FIN_WAIT1:
+		case TCP_FIN_WAIT1:    // 当前FIN_WAT1，收到SYN
 			/* If we enter the TCP_FIN_WAIT1 state and we are a
 			 * Fast Open socket and this is the first acceptable
 			 * ACK we have received, this would have acknowledged
@@ -5807,14 +5807,14 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb,
 			}
 			break;
 
-		case TCP_CLOSING:
+		case TCP_CLOSING:  // 当前CLOSTING状态，收到ACK
 			if (tp->snd_una == tp->write_seq) {
 				tcp_time_wait(sk, TCP_TIME_WAIT, 0);
 				goto discard;
 			}
 			break;
 
-		case TCP_LAST_ACK:
+		case TCP_LAST_ACK: // 当前LASTK_ACK状态，收到ACK
 			if (tp->snd_una == tp->write_seq) {
 				tcp_update_metrics(sk);
 				tcp_done(sk);

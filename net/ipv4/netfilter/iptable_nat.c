@@ -18,7 +18,7 @@
 #include <net/netfilter/nf_nat_core.h>
 #include <net/netfilter/nf_nat_l3proto.h>
 
-static const struct xt_table nf_nat_ipv4_table = {
+static const struct xt_tabl	e nf_nat_ipv4_table = {
 	.name		= "nat",
 	.valid_hooks	= (1 << NF_INET_PRE_ROUTING) |
 			  (1 << NF_INET_POST_ROUTING) |

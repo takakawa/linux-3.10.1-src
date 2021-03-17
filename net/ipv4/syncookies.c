@@ -283,7 +283,7 @@ struct sock *cookie_v4_check(struct sock *sk, struct sk_buff *skb,
 	if (!sysctl_tcp_syncookies || !th->ack || th->rst)
 		goto out;
 
-	if (tcp_synq_no_recent_overflow(sk) ||
+	if (tcp_synq_no_recent_overflow(sk) ||  // 已经没有overflow了理论上不应收到cookie
 	    (mss = cookie_check(skb, cookie)) == 0) {
 		NET_INC_STATS_BH(sock_net(sk), LINUX_MIB_SYNCOOKIESFAILED);
 		goto out;

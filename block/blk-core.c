@@ -1863,10 +1863,10 @@ void submit_bio(int rw, struct bio *bio)
 			count = bio_sectors(bio);
 
 		if (rw & WRITE) {
-			count_vm_events(PGPGOUT, count);
+			count_vm_events(PGPGOUT, count); // /proc/vmsta中的pgpgout
 		} else {
 			task_io_account_read(bio->bi_size);
-			count_vm_events(PGPGIN, count);
+			count_vm_events(PGPGIN, count);  // /proc/vmstat中的pgin
 		}
 
 		if (unlikely(block_dump)) {

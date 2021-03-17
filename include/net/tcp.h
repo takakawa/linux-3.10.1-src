@@ -699,7 +699,7 @@ struct tcp_skb_cb {
 	} header;	/* For incoming frames		*/
 	__u32		seq;		/* Starting sequence number	*/
 	__u32		end_seq;	/* SEQ + FIN + SYN + datalen	*/
-	__u32		when;		/* used to compute rtt's	*/
+	__u32		when;		/* used to compute rtt's	*/ // 指本skb发出去的时间而不是收到的时间，收到的时间没有必要存储
 	__u8		tcp_flags;	/* TCP header flags. (tcp[13])	*/
 
 	__u8		sacked;		/* State flags for SACK/FACK.	*/
@@ -1113,7 +1113,7 @@ static inline int keepalive_intvl_when(const struct tcp_sock *tp)
 
 static inline int keepalive_time_when(const struct tcp_sock *tp)
 {
-	return tp->keepalive_time ? : sysctl_tcp_keepalive_time;
+	return tp->keepalive_time ? : sysctl_tcp_keepalive_time;  //sysctl_tcp_keepalive_time=7200， 2小时
 }
 
 static inline int keepalive_probes(const struct tcp_sock *tp)
@@ -1125,8 +1125,8 @@ static inline u32 keepalive_time_elapsed(const struct tcp_sock *tp)
 {
 	const struct inet_connection_sock *icsk = &tp->inet_conn;
 
-	return min_t(u32, tcp_time_stamp - icsk->icsk_ack.lrcvtime,
-			  tcp_time_stamp - tp->rcv_tstamp);
+	return min_t(u32, tcp_time_stamp - icsk->icsk_ack.lrcvtime,  // 取ack的和
+			  tcp_time_stamp - tp->rcv_tstamp);                  // keeplive的ack的最小
 }
 
 static inline int tcp_fin_time(const struct sock *sk)

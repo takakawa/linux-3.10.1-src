@@ -3102,11 +3102,11 @@ int tcp_write_wakeup(struct sock *sk)
 	if (sk->sk_state == TCP_CLOSE)
 		return -1;
 
-	if ((skb = tcp_send_head(sk)) != NULL &&
+	if ((skb = tcp_send_head(sk)) != NULL &&        //发送队列中有数据未发送，且在创健对方的接收窗口内
 	    before(TCP_SKB_CB(skb)->seq, tcp_wnd_end(tp))) {
 		int err;
 		unsigned int mss = tcp_current_mss(sk);
-		unsigned int seg_size = tcp_wnd_end(tp) - TCP_SKB_CB(skb)->seq;
+		unsigned int seg_size = tcp_wnd_end(tp) - TCP_SKB_CB(skb)->seq; //对端接收窗口所允许的最大报文长度
 
 		if (before(tp->pushed_seq, TCP_SKB_CB(skb)->end_seq))
 			tp->pushed_seq = TCP_SKB_CB(skb)->end_seq;
@@ -3114,11 +3114,12 @@ int tcp_write_wakeup(struct sock *sk)
 		/* We are probing the opening of a window
 		 * but the window size is != 0
 		 * must have been a result SWS avoidance ( sender )
-		 */
+		 */ 
+		//skb超过限制，需要分段
 		if (seg_size < TCP_SKB_CB(skb)->end_seq - TCP_SKB_CB(skb)->seq ||
 		    skb->len > mss) {
 			seg_size = min(seg_size, mss);
-			TCP_SKB_CB(skb)->tcp_flags |= TCPHDR_PSH;
+			TCP_SKB_CB(skb)->tcp_flags |= TCPHDR_PSH;   //设置push标记，让对方马上传给应用程序
 			if (tcp_fragment(sk, skb, seg_size, mss))
 				return -1;
 		} else if (!tcp_skb_pcount(skb))
@@ -3131,6 +3132,8 @@ int tcp_write_wakeup(struct sock *sk)
 			tcp_event_new_data_sent(sk, skb);
 		return err;
 	} else {
+		// 没有新的数据可以发送，或者对方窗口满了
+		// /* 处于紧急模式时，额外发送一个序号为snd_una的ACK包，告诉对端紧急指针 */
 		if (between(tp->snd_up, tp->snd_una + 1, tp->snd_una + 0xFFFF))
 			tcp_xmit_probe_skb(sk, 1);
 		return tcp_xmit_probe_skb(sk, 0);
